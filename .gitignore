@@ -7,3 +7,5 @@ data/processed/
 .ipynb_checkpoints/
 models/*.pkl
 .DS_Store
+!data/raw/ethiopia_fi_unified_data.csv
+!data/raw/reference_codes.csv
