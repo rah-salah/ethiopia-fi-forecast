@@ -29,10 +29,26 @@ def convert():
     if not os.path.exists(ref_path):
         raise FileNotFoundError(f"{ref_path} not found. Place the raw Excel files in data/raw/ first.")
 
-    main = pd.read_excel(main_path, sheet_name=0)
-    impact = pd.read_excel(main_path, sheet_name="Impact_sheet")
+    try:
+        main = pd.read_excel(main_path, sheet_name=0)
+    except Exception as e:
+        raise ValueError(f"Could not read the first sheet of {main_path}: {e}")
+
+    try:
+        impact = pd.read_excel(main_path, sheet_name="Impact_sheet")
+    except ValueError as e:
+        raise ValueError(
+            f"'Impact_sheet' not found in {main_path}. "
+            f"Confirm the sheet name matches exactly (case-sensitive). Original error: {e}"
+        )
+
+    if "record_type" not in main.columns:
+        raise ValueError(f"Expected column 'record_type' not found in {main_path}, sheet 1.")
 
     main["parent_id"] = None
+    missing_cols = set(main.columns) - set(impact.columns)
+    if missing_cols:
+        raise ValueError(f"Impact_sheet is missing expected column(s): {missing_cols}")
     impact = impact[main.columns]
 
     unified = pd.concat([main, impact], ignore_index=True)
@@ -42,7 +58,11 @@ def convert():
     print(f"Wrote {unified_out} ({len(unified)} rows)")
     print(unified["record_type"].value_counts().to_string())
 
-    ref = pd.read_excel(ref_path)
+    try:
+        ref = pd.read_excel(ref_path)
+    except Exception as e:
+        raise ValueError(f"Could not read {ref_path}: {e}")
+
     ref_out = os.path.join(RAW_DIR, "reference_codes.csv")
     ref.to_csv(ref_out, index=False)
     print(f"\nWrote {ref_out} ({len(ref)} rows)")
